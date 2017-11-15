@@ -14,7 +14,7 @@ import gensim
 import string
 import pickle
 
-vocabulary_size = 12000 # This variable is used to define the maximum vocabulary size. 15000 best
+vocabulary_size = 10000 # This variable is used to define the maximum vocabulary size. 15000 best
 data_index = 0
 
 def build_dataset(words, n_words):

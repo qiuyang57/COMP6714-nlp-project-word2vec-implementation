@@ -14,7 +14,7 @@ import gensim
 import string
 import pickle
 
-vocabulary_size = 16000 # This variable is used to define the maximum vocabulary size. 15000 best
+vocabulary_size = 15000 # This variable is used to define the maximum vocabulary size. 15000 best
 data_index = 0
 
 def build_dataset(words, n_words):
@@ -46,7 +46,7 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
     batch_size = 128   # Size of mini-batch for skip-gram model.
     skip_window = 2  # How many words to consider left and right of the target word.
     num_samples = 4  # How many times to reuse an input to generate a label.
-    num_sampled = 32  # Sample size for negative examples. 64
+    num_sampled = 4  # Sample size for negative examples. 64
     logs_path = './log/'
 
     # Specification of test Sample:

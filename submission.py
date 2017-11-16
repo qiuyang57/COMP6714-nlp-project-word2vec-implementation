@@ -14,7 +14,7 @@ import gensim
 import string
 import pickle
 
-vocabulary_size = 14000 # This variable is used to define the maximum vocabulary size. 15000 best
+vocabulary_size = 9000 # This variable is used to define the maximum vocabulary size. 15000 best
 data_index = 0
 
 def build_dataset(words, n_words):
@@ -46,7 +46,7 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
     batch_size = 128   # Size of mini-batch for skip-gram model.
     skip_window = 2  # How many words to consider left and right of the target word.
     num_samples = 4  # How many times to reuse an input to generate a label.
-    num_sampled = 6  # Sample size for negative examples. 64
+    num_sampled = 500  # Sample size for negative examples. 64
     logs_path = './log/'
 
     # Specification of test Sample:
@@ -80,7 +80,7 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
             # tf.nce_loss automatically draws a new sample of the negative labels each
             # time we evaluate the loss.
             with tf.name_scope('Loss'):
-                loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weights, biases=nce_biases,
+                loss = tf.reduce_mean(tf.nn.sampled_softmax_loss(weights=nce_weights, biases=nce_biases,
                                                      labels=train_labels, inputs=embed,
                                                      num_sampled=num_sampled, num_classes=vocabulary_size))
 
@@ -272,7 +272,7 @@ def represent_word(word):
 
     if not tag:
         tag = '?'
-    if tag in LABELS:
+    if tag in LABELS or tag=='NUM' or tag=='SYM':
         return tag
     else:
         return text + '|' + tag
@@ -290,6 +290,7 @@ def process_data(input_data):
             if article != '':
                 new_article = transform_doc(nlp(strip_meta(article)))
                 data.extend(new_article.split())
+            i+=1
     with open(data_name, 'wb') as f:
         # Pickle the 'data' dictionary using the highest protocol available.
         pickle.dump(data, f)

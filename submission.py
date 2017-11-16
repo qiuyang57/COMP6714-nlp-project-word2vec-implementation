@@ -86,7 +86,7 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
                                                                  num_sampled=num_sampled, num_classes=vocabulary_size))
 
             with tf.name_scope('Adam'):
-                optimizer = tf.train.AdamOptimizer(learning_rate=0.002).minimize(loss)
+                optimizer = tf.train.AdamOptimizer(learning_rate=0.003).minimize(loss)
 
             # with tf.name_scope('Gradient_Descent'):
             #     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(loss)

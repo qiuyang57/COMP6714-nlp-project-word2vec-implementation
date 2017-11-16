@@ -1,7 +1,6 @@
 ## Submission.py for COMP6714-Project2
 ###################################################################################################################
 import codecs
-import os
 import math
 import random
 import zipfile
@@ -11,11 +10,11 @@ import spacy
 import re
 import collections
 import gensim
-import string
 import pickle
 
-vocabulary_size = 9000 # This variable is used to define the maximum vocabulary size. 15000 best
+vocabulary_size = 9000  # This variable is used to define the maximum vocabulary size. 15000 best
 data_index = 0
+
 
 def build_dataset(words, n_words):
     """Process raw inputs into a dataset.
@@ -42,8 +41,10 @@ def build_dataset(words, n_words):
 def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embedding_dim=200):
     with open(data_file, 'rb') as f:
         data_list = pickle.load(f)
+
+    data, count, dictionary, reverse_dictionary = build_dataset(data_list, vocabulary_size)
     # Specification of Training data:
-    batch_size = 128   # Size of mini-batch for skip-gram model.
+    batch_size = 128  # Size of mini-batch for skip-gram model.
     skip_window = 2  # How many words to consider left and right of the target word.
     num_samples = 4  # How many times to reuse an input to generate a label.
     num_sampled = 500  # Sample size for negative examples. 64
@@ -72,21 +73,20 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
                 embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
                 # Construct the variables for the NCE loss
-                nce_weights = tf.Variable(tf.truncated_normal([vocabulary_size, embedding_dim],
-                                                              stddev=1.0 / math.sqrt(embedding_dim)))
-                nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
+                weights = tf.Variable(tf.truncated_normal([vocabulary_size, embedding_dim],
+                                                          stddev=1.0 / math.sqrt(embedding_dim)))
+                biases = tf.Variable(tf.zeros([vocabulary_size]))
 
             # Compute the average NCE loss for the batch.
             # tf.nce_loss automatically draws a new sample of the negative labels each
             # time we evaluate the loss.
             with tf.name_scope('Loss'):
-                loss = tf.reduce_mean(tf.nn.sampled_softmax_loss(weights=nce_weights, biases=nce_biases,
-                                                     labels=train_labels, inputs=embed,
-                                                     num_sampled=num_sampled, num_classes=vocabulary_size))
-
+                loss = tf.reduce_mean(tf.nn.sampled_softmax_loss(weights=weights, biases=biases,
+                                                                 labels=train_labels, inputs=embed,
+                                                                 num_sampled=num_sampled, num_classes=vocabulary_size))
 
             with tf.name_scope('Adam'):
-                optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
+                optimizer = tf.train.AdamOptimizer(learning_rate=0.002).minimize(loss)
 
             # with tf.name_scope('Gradient_Descent'):
             #     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(loss)
@@ -107,10 +107,6 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
             # Merge all summary variables.
             merged_summary_op = tf.summary.merge_all()
 
-    data, count, dictionary, reverse_dictionary = build_dataset(data_list, vocabulary_size)
-    print(len(data))
-    print(len(dictionary))
-
     # the variable is abused in this implementation.
     # Outside the sample generation loop, it is the position of the sliding window: from data_index to data_index + span
     # Inside the sample generation loop, it is the next word to be added to a size-limited buffer.
@@ -129,7 +125,6 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
             data_index = 0
         buffer.extend(data[data_index:data_index + span])  # initial buffer content = first sliding window
 
-
         data_index += span
         for i in range(batch_size // num_samples):
             context_words = [w for w in range(span) if w != skip_window]
@@ -146,14 +141,13 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
                 buffer = data[:span]
                 data_index = span
             else:
-                buffer.append(data[data_index])  # note that due to the size limit, the left most word is automatically removed from the buffer.
+                buffer.append(data[
+                                  data_index])  # note that due to the size limit, the left most word is automatically removed from the buffer.
                 data_index += 1
 
         # end-of-for
         data_index = (data_index + len(data) - span) % len(data)  # move data_index back by `span`
         return batch, labels
-
-
 
     with tf.Session(graph=graph) as session:
         # We must initialize all variables before we use them.
@@ -196,22 +190,21 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
                 print()
 
         final_embeddings = normalized_embeddings.eval()
-        out=''
-        num=0
+        out = ''
+        num = 0
         for i in range(1, len(reverse_dictionary)):
             word = reverse_dictionary[i]
             if '|ADJ' == word[-4:]:
-                out+=word+' '
-                num+=1
+                out += word + ' '
+                num += 1
                 for j, vector in enumerate(final_embeddings[i]):
                     if j != len(final_embeddings[i]) - 1:
                         out += '{} '.format(vector)
                     else:
                         out += '{}\n'.format(vector)
-        out= '{} {}\n'.format(num-1,int(embedding_dim))+out
+        out = '{} {}\n'.format(num - 1, int(embedding_dim)) + out
         with codecs.open(embeddings_file_name, 'w', encoding='utf8') as f:
             f.write(out)
-
 
 
 LABELS = {
@@ -241,6 +234,7 @@ post_format_re = re.compile(r'[\`\*\~]$')
 url_re = re.compile(r'\[([^]]+)\]\(%%URL\)')
 link_re = re.compile(r'\[([^]]+)\]\(https?://[^\)]+\)')
 
+
 def strip_meta(text):
     text = link_re.sub(r'\1', text)
     text = text.replace('&gt;', '>').replace('&lt;', '<')
@@ -248,13 +242,14 @@ def strip_meta(text):
     text = post_format_re.sub('', text)
     return text
 
+
 def transform_doc(doc):
     for ent in doc.ents:
         ent.merge(tag=ent.root.tag_, lemma=ent.text, ent_type=LABELS[ent.label_])
     strings = []
     for sent in doc.sents:
         if sent.text.strip():
-            strings.append(' '.join(represent_word(w) for w in sent if not w.is_space and not w.pos_=='PUNCT'))
+            strings.append(' '.join(represent_word(w) for w in sent if not w.is_space and not w.pos_ == 'PUNCT'))
     if strings:
         return '\n'.join(strings) + '\n'
     else:
@@ -272,38 +267,33 @@ def represent_word(word):
 
     if not tag:
         tag = '?'
-    if tag in LABELS or tag=='NUM' or tag=='SYM':
+    if tag in LABELS or tag == 'NUM' or tag == 'SYM':
         return tag
     else:
         return text + '|' + tag
 
+
 def process_data(input_data):
-    data_name='data_file'
-    # adj=set()
+    data_name = 'data_file'
     nlp = spacy.load('en')
-    data=[]
+    data = []
     with zipfile.ZipFile(input_data) as f:
-        i=0
+        i = 0
         for name in f.namelist():
-            if i%100==0: print(i)
+            if i % 100 == 0: print(i)
             article = tf.compat.as_str(f.read(name))
             if article != '':
                 new_article = transform_doc(nlp(strip_meta(article)))
                 data.extend(new_article.split())
-            i+=1
+            i += 1
     with open(data_name, 'wb') as f:
-        # Pickle the 'data' dictionary using the highest protocol available.
         pickle.dump(data, f)
     return data_name
 
 
-
 def Compute_topk(model_file, input_adjective, top_k):
     model = gensim.models.KeyedVectors.load_word2vec_format(model_file, binary=False)
-    output=[]
-    i=0
-    for a, b in model.most_similar(positive=[input_adjective + '|ADJ'],topn=top_k):
+    output = []
+    for a, b in model.most_similar(positive=[input_adjective + '|ADJ'], topn=top_k):
         output.append(a[:-4])
-        i += 1
-
     return output

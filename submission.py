@@ -14,7 +14,7 @@ import gensim
 import string
 import pickle
 
-vocabulary_size = 12000 # This variable is used to define the maximum vocabulary size. 15000 best
+vocabulary_size = 14000 # This variable is used to define the maximum vocabulary size. 15000 best
 data_index = 0
 
 def build_dataset(words, n_words):
@@ -46,7 +46,7 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
     batch_size = 128   # Size of mini-batch for skip-gram model.
     skip_window = 2  # How many words to consider left and right of the target word.
     num_samples = 4  # How many times to reuse an input to generate a label.
-    num_sampled = 4  # Sample size for negative examples. 64
+    num_sampled = 6  # Sample size for negative examples. 64
     logs_path = './log/'
 
     # Specification of test Sample:
@@ -211,18 +211,7 @@ def adjective_embeddings(data_file, embeddings_file_name, num_steps=100001, embe
         out= '{} {}\n'.format(num-1,int(embedding_dim))+out
         with codecs.open(embeddings_file_name, 'w', encoding='utf8') as f:
             f.write(out)
-        # with codecs.open(embeddings_file_name, 'w', encoding='utf8') as f:
-        #     print(int(len(reverse_dictionary) - 1), file=f, end=' ')
-        #     print(int(embedding_dim), file=f, end='\n')
-        #     for i in range(1, len(reverse_dictionary)):
-        #         word=reverse_dictionary[i]
-        #         if '|ADJ' == word[-4:]:
-        #             print(word, file=f, end=' ')
-        #             for j, vector in enumerate(final_embeddings[i]):
-        #                 if j != len(final_embeddings[i]) - 1:
-        #                     print(vector, file=f, end=' ')
-        #                 else:
-        #                     print(vector, file=f, end='\n')
+
 
 
 LABELS = {
@@ -262,10 +251,6 @@ def strip_meta(text):
 def transform_doc(doc):
     for ent in doc.ents:
         ent.merge(tag=ent.root.tag_, lemma=ent.text, ent_type=LABELS[ent.label_])
-    # for np in doc.noun_chunks:
-    #     while len(np) > 1 and np[0].dep_ not in ('advmod', 'amod', 'compound'):
-    #         np = np[1:]
-    #     np.merge(tag=np.root.tag_, lemma=np.text, ent_type=np.root.ent_type_)
     strings = []
     for sent in doc.sents:
         if sent.text.strip():
@@ -302,37 +287,9 @@ def process_data(input_data):
         for name in f.namelist():
             if i%100==0: print(i)
             article = tf.compat.as_str(f.read(name))
-
-            # doc = nlp(article)
             if article != '':
                 new_article = transform_doc(nlp(strip_meta(article)))
                 data.extend(new_article.split())
-                # if 'basic' in article:
-                #     print(name)
-                #     print(article)
-                #     print(new_article)
-            #     new_article=re.sub(r'\n+',' ',article)
-            #     new_article = re.sub(r'\s+',' ',new_article)
-            #     for ent in doc.ents:
-            #         pattern=r'(\W)'+re.escape(ent.text)+r'(\W)'
-            #         new_article = re.sub(pattern, r'\1'+ent.label_+r'\2', new_article)
-            #         new_article=new_article.lower()
-            #     n_doc= nlp(new_article)
-            #     for token in n_doc:
-            #         if token.text != ' ' and token.text not in string.punctuation:
-            #             if token.text != token.lemma_:
-            #                 if token.pos_ == 'ADJ' and token.lemma_ != '-PRON-':
-            #                     # adj.add(token.lemma_)
-            #                     data.append('{}/ADJ'.format(token.text))
-            #                 else:
-            #                     data.append('{}'.format(token.lemma_))
-            #             else:
-            #                 if token.pos_ == 'ADJ':
-            #                     # adj.add(token.text)
-            #                     data.append('{}/ADJ'.format(token.text))
-            #                 else:
-            #                     data.append('{}'.format(token.text))
-            i+=1
     with open(data_name, 'wb') as f:
         # Pickle the 'data' dictionary using the highest protocol available.
         pickle.dump(data, f)
